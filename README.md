@@ -31,7 +31,7 @@ app/streamlit_app.py       демо
 
 ```bash
 cp .env.example .env   # вписать ключ или LLM_PROVIDER=ollama
-pip install -e ".[dev]"
+pip install -r requirements.txt   # или: make install (все команды: make help)
 python -m lab05.generators --quests 10 --items 20
 streamlit run app/streamlit_app.py
 ```
