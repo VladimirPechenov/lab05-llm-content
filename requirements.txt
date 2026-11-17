@@ -1,16 +1,11 @@
-# Зависимости проекта. Установка: pip install -r requirements.txt
-# Источник версий — pyproject.toml, при добавлении пакета правьте оба файла.
+# Install from the repository root. No API key is needed for tests or the saved demo.
 openai>=1.30
 anthropic>=0.28
 pydantic>=2.6
 python-dotenv>=1.0
 streamlit>=1.33
 requests>=2.31
-
-# Инструменты разработки: тесты, линтер, pre-commit
 pytest>=8
 ruff>=0.5
 pre-commit>=3
-
-# Установка самого проекта в режиме разработки (чтобы работали импорты из src/)
 -e .
