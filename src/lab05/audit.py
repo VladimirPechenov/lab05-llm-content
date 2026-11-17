@@ -17,6 +17,8 @@ def validate_corpus(root=ROOT):
     quests = json.loads((root / "data/out/quests.json").read_text(encoding="utf-8"))
     items = json.loads((root / "data/out/items.json").read_text(encoding="utf-8"))
     dialogues = json.loads((root / "data/out/dialogues.json").read_text(encoding="utf-8"))
+    incident_path = root / "results/transport_incidents.json"
+    incidents = json.loads(incident_path.read_text(encoding="utf-8")) if incident_path.exists() else []
     for obj in quests:
         Quest.model_validate(obj)
     for obj in items:
@@ -32,14 +34,19 @@ def validate_corpus(root=ROOT):
         successful = [t for t in tasks if t["completed"]]
         calls = [a for t in tasks for a in t["attempts"]]
         first_ok = sum(t["attempts"][0]["valid"] for t in tasks)
+        transport = [i for i in incidents if i["kind"] == kind]
+        interrupted = {i["task_id"] for i in transport if i.get("before_response")}
+        first_ok -= sum(t["task_id"] in interrupted and t["attempts"][0]["valid"] for t in tasks)
         rows.append(
             dict(
                 generator=kind,
                 tasks=len(tasks),
-                calls=len(calls),
+                calls=len(calls) + len(transport),
+                responses=len(calls),
+                transport_errors=len(transport),
                 first_valid=first_ok,
                 final_valid=len(successful),
-                retries=len(calls) - len(tasks),
+                retries=len(calls) + len(transport) - len(tasks),
                 unique_names=len({r[title_key].casefold() for r in records}) if records else None,
                 median_latency_s=round(statistics.median(a["latency_s"] for a in calls), 3),
                 output_tokens=sum(a["usage"].get("eval_count", 0) or 0 for a in calls),

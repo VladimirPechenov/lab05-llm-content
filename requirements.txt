@@ -1,3 +1,4 @@
+-c constraints.txt
 # Install from the repository root. No API key is needed for tests or the saved demo.
 openai>=1.30
 anthropic>=0.28

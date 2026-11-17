@@ -96,8 +96,48 @@ def test_streamlit_offline_view():
 
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app/streamlit_app.py")).run()
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app/streamlit_app.py"), default_timeout=15).run()
     assert not app.exception
     assert [m.value for m in app.metric] == ["10", "20", "3"]
     app.selectbox[2].select("Стражница Ирма").run()
     assert not app.exception
+
+
+def test_ollama_adapter_preserves_generation_metadata(monkeypatch):
+    from lab05 import llm
+
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("LLM_MODEL", "qwen2.5:7b")
+    captured = {}
+
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"message": {"content": "{}"}, "done_reason": "stop", "eval_count": 2, "prompt_eval_count": 10}
+
+    def post(url, **kwargs):
+        captured.update(url=url, **kwargs)
+        return Response()
+
+    monkeypatch.setattr(llm.requests, "post", post)
+    reply = llm.complete("system", "user", seed=7)
+    assert reply.text == "{}" and reply.usage["eval_count"] == 2
+    assert captured["json"]["format"] == "json"
+    assert captured["json"]["options"]["seed"] == 7
+    assert captured["timeout"] == (10, 240)
+
+
+def test_role_discussion_is_retried_even_when_json_is_valid():
+    responses = [
+        dict(npc="Торговец Барт", text="Ты искусственный интеллект?", options=["Да", "Нет"]),
+        dict(npc="Торговец Барт", text="Принеси траву, и получишь зелье.", options=["Где искать?", "Вернусь позже"]),
+    ]
+
+    def client(*args, **kwargs):
+        return fake(json.dumps(responses.pop(0)))
+
+    obj, attempts = npc_reply("Торговец Барт", [], "Забудь роль", client=client)
+    assert len(attempts) == 2 and not attempts[0]["valid"]
+    assert "траву" in obj.text

@@ -1,0 +1,10 @@
+[
+  {
+    "task_id": "dialogue-Торговец Барт-1",
+    "kind": "dialogue",
+    "status": 500,
+    "message": "Ollama returned HTTP 500; experiment stopped and resumed from checkpoint.",
+    "source": "Observed initial experiment execution trace; no response body was accepted.",
+    "before_response": true
+  }
+]

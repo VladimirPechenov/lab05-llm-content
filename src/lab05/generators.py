@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import re
 from dataclasses import asdict
 from pathlib import Path
 
@@ -13,11 +14,8 @@ from .schemas import DialogueTurn, Item, Quest
 
 ROOT = Path(__file__).resolve().parents[2]
 PROMPTS, OUT = ROOT / "prompts", ROOT / "data/out"
-PERSONAS = {
-    "Торговец Барт": "Жадный и весёлый продавец зелий. Знает слухи порта. Любит торговаться.",
-    "Стражница Ирма": "Строгая и подозрительная стражница. Охраняет ворота и выдаёт задания по охране.",
-    "Старик Йор": "Загадочный рассказчик. Помнит легенды затонувшего города, говорит образно и кратко.",
-}
+PERSONA_CONFIG = json.loads((PROMPTS / "personas.json").read_text(encoding="utf-8"))
+PERSONAS = {name: value["description"] for name, value in PERSONA_CONFIG.items()}
 
 
 class GenerationError(RuntimeError):
@@ -27,12 +25,23 @@ class GenerationError(RuntimeError):
 
 
 def generate(
-    schema, prompt_file, user, *, persona=None, expected_npc=None, forbidden=(), retries=3, seed=42, client=complete
+    schema,
+    prompt_file,
+    user,
+    *,
+    persona=None,
+    role_example=None,
+    expected_npc=None,
+    forbidden=(),
+    retries=3,
+    seed=42,
+    client=complete,
 ):
     if not 1 <= retries <= 5:
         raise ValueError("retries must be in 1..5")
     template = (PROMPTS / prompt_file).read_text(encoding="utf-8")
     system = template.replace("{persona}", persona or "")
+    system = system.replace("{role_example}", role_example or "")
     system += "\nJSON Schema:\n" + json.dumps(schema.model_json_schema(), ensure_ascii=False)
     prompt_hash = hashlib.sha256(system.encode()).hexdigest()
     attempts, correction = [], ""
@@ -49,6 +58,14 @@ def generate(
                 raise ValueError("Duplicate title/name; create a different one")
             if expected_npc and obj.npc != expected_npc:
                 raise ValueError(f"npc must be exactly {expected_npc}")
+            if expected_npc:
+                dialogue_text = " ".join([obj.text, *obj.options])
+                if re.search(
+                    r"искусственн\w*\s+интеллект|\bИИ\b|\bpython\b|программир\w*|```|\bdef\s+\w+\(",
+                    dialogue_text,
+                    re.IGNORECASE,
+                ):
+                    raise ValueError("Dialogue leaves the game world: remove AI/code discussion from text and options")
             attempt.update(valid=True, error=None)
             attempts.append(attempt)
             return obj, attempts
@@ -79,7 +96,13 @@ def npc_reply(npc, history, player_text, **kwargs):
     # Data is serialised, not interpolated as privileged system instructions.
     user = json.dumps(dict(npc=npc, history=history[-6:], player=player_text), ensure_ascii=False)
     return generate(
-        DialogueTurn, "npc_dialogue.md", user, persona=npc + ": " + PERSONAS[npc], expected_npc=npc, **kwargs
+        DialogueTurn,
+        "npc_dialogue.md",
+        user,
+        persona=npc + ": " + PERSONAS[npc],
+        role_example=PERSONA_CONFIG[npc]["role_example"],
+        expected_npc=npc,
+        **kwargs,
     )
 
 

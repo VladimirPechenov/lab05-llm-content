@@ -1,0 +1,65 @@
+{
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "rows": [
+    {
+      "generator": "quest",
+      "tasks": 10,
+      "calls": 10,
+      "responses": 10,
+      "transport_errors": 0,
+      "first_valid": 10,
+      "final_valid": 10,
+      "retries": 0,
+      "unique_names": 10,
+      "median_latency_s": 2.907,
+      "output_tokens": 1748
+    },
+    {
+      "generator": "item",
+      "tasks": 20,
+      "calls": 21,
+      "responses": 21,
+      "transport_errors": 0,
+      "first_valid": 19,
+      "final_valid": 20,
+      "retries": 1,
+      "unique_names": 20,
+      "median_latency_s": 1.745,
+      "output_tokens": 2004
+    },
+    {
+      "generator": "dialogue",
+      "tasks": 9,
+      "calls": 10,
+      "responses": 9,
+      "transport_errors": 1,
+      "first_valid": 8,
+      "final_valid": 9,
+      "retries": 1,
+      "unique_names": null,
+      "median_latency_s": 2.034,
+      "output_tokens": 986
+    }
+  ],
+  "corpus_sha256": {
+    "quests.json": "b89168f2515f0799dbc0a247652131ec0bd3ae5dc0843e0d7188a609dc6078a1",
+    "items.json": "ca789eaea50ccbe4a73cb080e54fa562aed349e1a2d120ed07e13b5837010aac",
+    "dialogues.json": "58bead507a4c46e893450ea8b8d69f6c6a09cac46318989ff70a751e2ccdbfb6"
+  },
+  "personas": [
+    "Торговец Барт",
+    "Стражница Ирма",
+    "Старик Йор"
+  ],
+  "quest_difficulties": {
+    "3": 9,
+    "4": 1
+  },
+  "item_rarities": {
+    "common": 2,
+    "rare": 10,
+    "epic": 8
+  },
+  "notes": "Controlled baseline and jailbreak probes are excluded from corpus metrics."
+}

@@ -4,6 +4,8 @@ import json
 import time
 from pathlib import Path
 
+import requests
+
 from .generators import PERSONAS, GenerationError, gen_item, gen_quest, npc_reply
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -93,7 +95,22 @@ def build_corpus(n_quests=10, n_items=20):
             "Напомни, о какой помощи мы говорили, и что я получу?",
         ]
         for i in range(len(history) // 2, len(questions)):
-            obj, attempts = npc_reply(npc, history, questions[i], seed=72 + i)
+            try:
+                obj, attempts = npc_reply(npc, history, questions[i], seed=72 + i)
+            except requests.RequestException as exc:
+                incident_path = results / "transport_incidents.json"
+                incidents = read(incident_path, [])
+                incidents.append(
+                    dict(
+                        task_id=f"dialogue-{npc}-{i}",
+                        kind="dialogue",
+                        status=exc.response.status_code if exc.response is not None else None,
+                        message=type(exc).__name__,
+                        before_response=True,
+                    )
+                )
+                save(incident_path, incidents)
+                raise
             trace.append(dict(task_id=f"dialogue-{npc}-{i}", kind="dialogue", completed=True, attempts=attempts))
             history += [dict(role="player", text=questions[i]), dict(role="npc", **obj.model_dump())]
             dialogues[npc] = history

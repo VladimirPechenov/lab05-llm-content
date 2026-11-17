@@ -1,0 +1,7 @@
+# Tested library versions; Python 3.12+.
+pydantic==2.14.3
+streamlit==1.67.0
+requests==2.34.2
+openai==3.52.0
+anthropic==2.9.0
+python-dotenv==1.2.4
