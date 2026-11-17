@@ -55,6 +55,8 @@ def main():
     system = (ROOT / "prompts/quest.md").read_text(encoding="utf-8")
     user = "Сеттинг: тёмное фэнтези, портовый город. Ключ старой таможни."
     first = complete(system, user, seed=42)
+    system = "Ты сервис точного повторения JSON. Верни предоставленный JSON без изменений, сохрани все поля и title."
+    user = first.text
     second = complete(system, user, seed=42)
     try:
         first_quest = Quest.model_validate_json(first.text)
