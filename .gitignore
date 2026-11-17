@@ -24,3 +24,8 @@ logs/
 .idea/
 .vscode/
 .DS_Store
+
+.tools/
+.qa/
+.env.*
+!.env.example
