@@ -1,4 +1,4 @@
-"""Strict game content contracts shared by generators and the demo."""
+"""Строгие контракты игрового контента для генераторов и приложения."""
 
 from typing import Annotated, Literal
 
@@ -8,6 +8,7 @@ Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class Content(BaseModel):
+    # Запрещаем незаданные поля и неявное преобразование типов во всех дочерних схемах.
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
@@ -22,6 +23,7 @@ class Quest(Content):
     @field_validator("steps")
     @classmethod
     def distinct_steps(cls, steps):
+        """Отклоняет повторяющиеся шаги без учёта регистра."""
         if len({s.casefold() for s in steps}) != len(steps):
             raise ValueError("Quest steps must be distinct")
         return steps
@@ -44,6 +46,7 @@ class DialogueTurn(Content):
     @field_validator("text")
     @classmethod
     def sixty_words(cls, text):
+        """Ограничивает длину реплики, чтобы NPC отвечал кратко."""
         if len(text.split()) > 60:
             raise ValueError("Reply exceeds 60 words")
         return text
