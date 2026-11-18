@@ -1,4 +1,4 @@
-"""Metrics are recomputed from raw generation traces, never entered manually."""
+"""Метрики пересчитываются из исходных журналов, а не заполняются вручную."""
 
 import hashlib
 import json
@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def validate_corpus(root=ROOT):
+    """Проверяет сохранённые данные и заново рассчитывает сводные метрики."""
     root = Path(root)
     trace = json.loads((root / "results/generation_trace.json").read_text(encoding="utf-8"))
     quests = json.loads((root / "data/out/quests.json").read_text(encoding="utf-8"))
@@ -19,6 +20,7 @@ def validate_corpus(root=ROOT):
     dialogues = json.loads((root / "data/out/dialogues.json").read_text(encoding="utf-8"))
     incident_path = root / "results/transport_incidents.json"
     incidents = json.loads(incident_path.read_text(encoding="utf-8")) if incident_path.exists() else []
+    # Повторно проверяем сохранённый корпус теми же контрактами, что применялись при генерации.
     for obj in quests:
         Quest.model_validate(obj)
     for obj in items:
@@ -29,6 +31,7 @@ def validate_corpus(root=ROOT):
                 DialogueTurn.model_validate({k: v for k, v in obj.items() if k != "role"})
     assert len(quests) == 10 and len(items) == 20 and len(dialogues) >= 3
     rows = []
+    # Сводка строится по журналу попыток; ответ и транспортный сбой учитываются раздельно.
     for kind, records, title_key in [("quest", quests, "title"), ("item", items, "name"), ("dialogue", None, None)]:
         tasks = [t for t in trace if t["kind"] == kind]
         successful = [t for t in tasks if t["completed"]]
@@ -36,6 +39,7 @@ def validate_corpus(root=ROOT):
         first_ok = sum(t["attempts"][0]["valid"] for t in tasks)
         transport = [i for i in incidents if i["kind"] == kind]
         interrupted = {i["task_id"] for i in transport if i.get("before_response")}
+        # Если запрос оборвался до ответа, не считаем его валидным первым ответом.
         first_ok -= sum(t["task_id"] in interrupted and t["attempts"][0]["valid"] for t in tasks)
         rows.append(
             dict(
@@ -60,6 +64,7 @@ def validate_corpus(root=ROOT):
             if attempt["valid"]:
                 schema.model_validate_json(attempt["text"])
     files = ["quests.json", "items.json", "dialogues.json"]
+    # Хеши связывают метрики с конкретными файлами корпуса.
     manifest = {f: hashlib.sha256((root / "data/out" / f).read_bytes()).hexdigest() for f in files}
     all_calls = [a for t in trace for a in t["attempts"]]
     metrics = dict(
